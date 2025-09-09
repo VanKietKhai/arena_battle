@@ -1,3 +1,8 @@
+"""
+AI Bot Main Entry Point - Refactored with Modular Architecture
+Supports pluggable AI models through the models/ directory
+"""
+
 import asyncio
 import logging
 import argparse
@@ -9,23 +14,21 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ai_bot.models.network import PPONetwork, ObservationProcessor
-from ai_bot.training.ppo import PPOTrainer
-from ai_bot.training.buffer import ExperienceBuffer
-from ai_bot.client.bot_client import BotClient
+from ai_bot.core.model_loader import create_model, list_available_models, get_default_model_type
+from ai_bot.core.game_interface import GameInterface
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Global bot client for graceful shutdown
-bot_client = None
+# Global interface for graceful shutdown
+game_interface = None
 
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully with auto-save"""
-    global bot_client
-    if bot_client:
+    global game_interface
+    if game_interface and game_interface.model:
         logger.info("🛑 Received shutdown signal - saving model...")
-        asyncio.create_task(bot_client._save_model("manual_shutdown"))
+        asyncio.create_task(game_interface._save_model_on_exit())
     sys.exit(0)
 
 def find_latest_model(player_id, models_dir):
@@ -45,7 +48,7 @@ def find_latest_model(player_id, models_dir):
     model_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
     return str(model_files[0])
 
-def list_available_models(player_id, models_dir):
+def list_player_models(player_id, models_dir):
     """List available models for a player"""
     models_path = Path(models_dir)
     if not models_path.exists():
@@ -66,9 +69,10 @@ def list_available_models(player_id, models_dir):
                 'file': str(model_file),
                 'name': model_file.name,
                 'save_type': checkpoint.get('save_type', 'unknown'),
-                'kd_ratio': checkpoint.get('kd_ratio', 0),
-                'accuracy': checkpoint.get('accuracy', 0),
-                'episodes': checkpoint.get('episode_count', 0),
+                'model_type': checkpoint.get('statistics', {}).get('model_name', 'Unknown'),
+                'kd_ratio': checkpoint.get('statistics', {}).get('kd_ratio', 0),
+                'accuracy': checkpoint.get('statistics', {}).get('accuracy', 0),
+                'episodes': checkpoint.get('statistics', {}).get('episode_count', 0),
                 'save_time': checkpoint.get('save_time', 'unknown')
             }
             models_info.append(info)
@@ -78,18 +82,26 @@ def list_available_models(player_id, models_dir):
     return models_info
 
 async def main():
-    global bot_client
+    """Main entry point with modular AI model support"""
+    global game_interface
     
-    parser = argparse.ArgumentParser(description='Arena Battle AI Bot - Enhanced PvP with Auto-Save')
+    parser = argparse.ArgumentParser(description='Arena Battle AI Bot - Modular Architecture')
     parser.add_argument('--host', default='localhost', help='Server host')
     parser.add_argument('--port', type=int, default=50051, help='Server port')
     parser.add_argument('--player-id', required=True, help='Unique player ID')
     parser.add_argument('--bot-name', help='Bot name (default: enhanced player ID)')
+    
+    # Model selection
+    parser.add_argument('--model-type', help='AI model type (ppo, dqn, etc.)')
+    parser.add_argument('--list-models', action='store_true', help='List available AI model types')
+    parser.add_argument('--list-saved-models', action='store_true', help='List saved models for player')
+    
+    # Model loading
     parser.add_argument('--model-path', help='Path to specific model file to load')
     parser.add_argument('--auto-load', action='store_true', help='Auto-load latest model for player')
-    parser.add_argument('--list-models', action='store_true', help='List available models and exit')
+    
+    # Directories
     parser.add_argument('--models-dir', default='models/checkpoints', help='Models directory')
-    parser.add_argument('--save-interval', type=int, default=300, help='Auto-save interval in seconds')
     
     args = parser.parse_args()
     
@@ -97,37 +109,62 @@ async def main():
     signal.signal(signal.SIGINT, signal_handler)
     
     if not args.bot_name:
-        args.bot_name = f"{args.player_id}"
+        args.bot_name = f"AI_{args.player_id}"
     
-    # List models if requested
+    # List AI model types if requested
     if args.list_models:
-        logger.info(f"📋 Available models for player '{args.player_id}':")
-        models = list_available_models(args.player_id, args.models_dir)
+        logger.info("🤖 Available AI Model Types:")
+        list_available_models()
+        return
+    
+    # List saved models if requested
+    if args.list_saved_models:
+        logger.info(f"💾 Saved models for player '{args.player_id}':")
+        models = list_player_models(args.player_id, args.models_dir)
         
         if not models:
-            logger.info("❌ No models found for this player")
+            logger.info("❌ No saved models found for this player")
         else:
             for i, model in enumerate(models):
                 logger.info(f"  {i+1}. {model['name']}")
-                logger.info(f"     Type: {model['save_type']}, K/D: {model['kd_ratio']:.2f}")
+                logger.info(f"     Type: {model['model_type']}, K/D: {model['kd_ratio']:.2f}")
                 logger.info(f"     Accuracy: {model['accuracy']:.1f}%, Episodes: {model['episodes']}")
                 logger.info(f"     Saved: {model['save_time']}")
                 logger.info("")
         return
     
-    # Display enhanced startup banner
+    # Determine model type to use
+    model_type = args.model_type
+    if not model_type:
+        model_type = get_default_model_type()
+        if not model_type:
+            logger.error("❌ No AI models available! Check models/ directory")
+            return
+        logger.info(f"🎯 Using default model type: {model_type}")
+    
+    # Display startup banner
     logger.info("🤖 ==========================================")
-    logger.info("🤖   ARENA BATTLE AI BOT")
+    logger.info("🤖   ARENA BATTLE AI BOT - MODULAR")
     logger.info("🤖 ==========================================")
     logger.info(f"🤖 Bot Name: {args.bot_name}")
     logger.info(f"🤖 Player ID: {args.player_id}")
+    logger.info(f"🧠 AI Model: {model_type}")
     logger.info(f"🌐 Server: {args.host}:{args.port}")
     logger.info("⚔️ Mode: PvP Combat")
-    logger.info("🧠 Features: Wall Avoidance + Smart Aiming + Auto-Save")
     logger.info(f"💾 Models Directory: {args.models_dir}")
-    logger.info(f"⏰ Auto-save Interval: {args.save_interval}s")
     
-    # Model loading logic
+    # Create AI model
+    logger.info(f"🔧 Initializing {model_type} model...")
+    model = create_model(model_type)
+    
+    if model is None:
+        logger.error(f"❌ Failed to create {model_type} model")
+        logger.info("💡 Available models:")
+        list_available_models()
+        return
+    
+    # Handle model loading
+    model_loaded = False
     model_to_load = None
     
     if args.model_path:
@@ -142,7 +179,7 @@ async def main():
         # Auto-load latest model
         model_to_load = find_latest_model(args.player_id, args.models_dir)
         if model_to_load:
-            logger.info(f"🔄 Auto-loading latest model: {model_to_load}")
+            logger.info(f"📄 Auto-loading latest model: {model_to_load}")
         else:
             logger.info("🆕 No existing models found - starting fresh")
     else:
@@ -151,48 +188,46 @@ async def main():
         if latest_model:
             logger.info(f"💡 Found existing model: {Path(latest_model).name}")
             logger.info("   Use --auto-load to load it automatically")
-            logger.info("   Use --list-models to see all available models")
+            logger.info("   Use --list-saved-models to see all available models")
         logger.info("🆕 Starting with fresh neural network")
-    
-    logger.info("🤖 ==========================================")
-    
-    # Create AI components
-    network = PPONetwork()
-    trainer = PPOTrainer(network)
-    obs_processor = ObservationProcessor()
-    buffer = ExperienceBuffer()
-    
-    # Create enhanced bot client
-    bot_client = BotClient(args.player_id, args.bot_name, trainer, obs_processor)
-    
-    # Set auto-save interval
-    bot_client.save_interval = args.save_interval
     
     # Load model if specified
     if model_to_load:
-        success = bot_client.load_model(model_to_load)
-        if not success:
+        logger.info(f"📥 Loading model from: {model_to_load}")
+        success = model.load_model(model_to_load)
+        if success:
+            model_loaded = True
+            stats = model.get_statistics()
+            logger.info(f"✅ Model loaded successfully!")
+            logger.info(f"📊 Loaded stats: {stats['kills']}K/{stats['deaths']}D, Episodes: {stats['episode_count']}")
+        else:
             logger.warning("⚠️ Model loading failed - continuing with fresh network")
+    
+    logger.info("🤖 ==========================================")
+    
+    # Create game interface
+    game_interface = GameInterface(args.player_id, args.bot_name, model)
     
     try:
         logger.info("🔌 Connecting to Arena Battle Server...")
         logger.info("⏳ Server will automatically assign to PvP match")
         logger.info("🎯 Minimum 2 players required to start battle")
-        logger.info("💾 Model will auto-save periodically and on improvements")
+        logger.info("💾 Model will auto-save on significant improvements")
         logger.info("🛑 Press Ctrl+C to stop and save model")
         
-        await bot_client.connect_and_play(
+        await game_interface.connect_and_play(
             host=args.host,
             port=args.port
         )
+        
     except KeyboardInterrupt:
-        logger.info("🛑 Bot stopped by user - saving final model...")
-        await bot_client._save_model("user_stop")
+        logger.info("🛑 Bot stopped by user - saving model...")
+        await game_interface._save_model_on_exit()
         logger.info("👋 Goodbye!")
     except Exception as e:
         logger.error(f"💥 Unexpected error: {e}")
-        if bot_client:
-            await bot_client._save_model("error_save")
+        if game_interface:
+            await game_interface._save_model_on_exit()
 
 if __name__ == "__main__":
     asyncio.run(main())
