@@ -26,8 +26,8 @@ arena_battle_game/
 │
 ├── proto/                       # Protocol Buffer definitions
 │   ├── arena.proto             # gRPC service definitions
-│   ├── arena_pb2.py            # Generated Python classes
-│   ├── arena_pb2_grpc.py       # Generated gRPC stubs
+│   ├── arena_pb2.py            # Python classes
+│   ├── arena_pb2_grpc.py       # gRPC stubs
 │
 ├── game_server/                 # Centralized game engine
 │   ├── main.py                 # Server entry point
@@ -168,8 +168,7 @@ python -m ai_bot.main \
   --player-id advanced_bot \
   --room-id room_002 \
   --room-password abc456 \
-  --model-path ./models/checkpoints/trained_model.pth \
-  --save-interval 180
+  --model-path ./models/checkpoints/trained_model.pth
 ```
 
 ### Step 3: Monitor Training
@@ -237,31 +236,6 @@ rewards = {
 - **Event-triggered:** Every 10 deaths for progress tracking
 - **Model Management:** Automatic cleanup of old checkpoints
 
-## Advanced Usage
-
-### Custom AI Models
-Extend the `BaseAIModel` class to implement custom algorithms:
-
-```python
-from ai_bot.models.base_model import BaseAIModel
-
-class CustomAI(BaseAIModel):
-    def _initialize_model(self, **kwargs):
-        # Custom model setup
-        
-    def get_action(self, observation, deterministic=False):
-        # Custom action selection
-        
-    def learn_from_experience(self, experience_data):
-        # Custom learning algorithm
-```
-
-### Training Strategies
-- **Self-Play:** Single player with multiple bot instances
-- **Tournament:** Multiple players competing simultaneously  
-- **Curriculum Learning:** Progressive arena complexity
-- **Transfer Learning:** Load pre-trained models as starting points
-
 ### Performance Optimization
 - **Headless Mode:** `python -m game_server.main --no-ui`
 - **Speed Scaling:** Use 4x-10x speed for rapid training iterations
@@ -290,11 +264,6 @@ Each saved model includes comprehensive metrics:
 
 ### Common Issues
 
-**Proto Import Error:**
-```bash
-python proto/generate.py
-```
-
 **Connection Refused:**
 - Ensure server is running on correct port (50051)
 - Check firewall settings for localhost connections
@@ -306,12 +275,6 @@ python proto/generate.py
 **Room Access Denied:**
 - Confirm room ID and password in rooms.json
 - Ensure room isn't at maximum capacity
-
-### Debug Mode
-Enable detailed logging with debug flags:
-```bash
-python -m game_server.main --log-level DEBUG
-```
 
 ### Performance Issues
 - Reduce training speed multiplier (1x-2x)
