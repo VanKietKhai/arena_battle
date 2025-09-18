@@ -1,323 +1,332 @@
-# Arena Battle Game
-# ARENA BATTLE GAME - PROJECT DESCRIPTION
+# Arena Battle Game - AI Combat Training Platform
 
-📋 PROJECT OVERVIEW:
-Arena Battle Game là một 2D top-down battle arena game với AI bots học real-time 
-thông qua reinforcement learning. Project sử dụng server-managed matchmaking architecture
-với game server quản lý tất cả logic matching và AI bots chỉ cần connect với model của họ.
+A 2D top-down battle arena game where AI bots learn real-time combat strategies through reinforcement learning. The system features server-managed room-based multiplayer architecture with advanced PPO (Proximal Policy Optimization) AI training.
 
-# =====================================
-# 🏗️ PROJECT ARCHITECTURE
-# =====================================
+## Overview
 
-ARCHITECTURE_OVERVIEW
-┌─────────────────────────────────────────────────────────────┐
-│                    GAME SERVER (Central Hub)                │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  │
-│  │   Game Engine   │  │  Matchmaking    │  │ Visualization│  │
-│  │   • Physics     │  │  • Auto-assign  │  │ • Pygame UI  │  │
-│  │   • Collision   │  │  • Self-play    │  │ • Statistics │  │
-│  │   • Bullets     │  │  • PvP Queue    │  │ • Controls   │  │
-│  │   • Respawn     │  │  • Room Mgmt    │  │ • Bot List   │  │
-│  └─────────────────┘  └─────────────────┘  └──────────────┘  │
-│                          │                                   │
-└──────────────────────────┼───────────────────────────────────┘
-                           │ gRPC
-              ┌────────────┴────────────┐
-              │                         │
-    ┌─────────▼────────┐      ┌─────────▼────────┐
-    │   AI Bot #1      │      │   AI Bot #2      │
-    │ • Load Model     │      │ • Load Model     │
-    │ • PPO Training   │      │ • PPO Training   │
-    │ • Auto Movement  │      │ • Auto Movement  │
-    │ • Real-time Learn│      │ • Real-time Learn│
-    └──────────────────┘      └──────────────────┘
+Arena Battle Game is a sophisticated AI training platform that combines real-time physics simulation with machine learning. AI bots develop combat strategies including wall avoidance, smart aiming, tactical movement, and firing efficiency through continuous learning in PvP battles.
 
-# =====================================
-# 📁 PROJECT STRUCTURE
-# =====================================
+**Key Features:**
+- Real-time multiplayer combat with room-based system
+- Advanced PPO reinforcement learning with enhanced reward system  
+- Smart wall avoidance and tactical movement AI
+- Auto-save model checkpoints with performance tracking
+- Live visualization with pygame UI
+- Configurable arena layouts with custom obstacles
+- gRPC-based client-server architecture
+- Comprehensive JSON logging system
 
-PROJECT_STRUCTURE
+## Project Structure
+
+```
 arena_battle_game/
-├── requirements.txt                 # Dependencies
-├── README.md                       # Project documentation
-├── run_demo.py                     # Quick demo launcher
+├── requirements.txt              # Dependencies
+├── README.md                    # This file
+├── rooms.json                   # Room configurations
 │
-├── proto/                          # Protocol Buffer definitions (Single source)
-│   ├── __init__.py                # Package marker
-│   ├── arena.proto                # gRPC service definitions
-│   ├── generate.py                # Proto generation script
-│   ├── arena_pb2.py               # Generated Python classes
-│   └── arena_pb2_grpc.py          # Generated gRPC stubs
+├── proto/                       # Protocol Buffer definitions
+│   ├── arena.proto             # gRPC service definitions
+│   ├── arena_pb2.py            # Generated Python classes
+│   ├── arena_pb2_grpc.py       # Generated gRPC stubs
+│   └── generate.py             # Proto generation script
 │
-├── game_server/                    # Centralized game engine
-│   ├── __init__.py
-│   ├── main.py                    # Server entry point
+├── game_server/                 # Centralized game engine
+│   ├── main.py                 # Server entry point
 │   │
-│   ├── engine/                    # Core game logic
-│   │   ├── __init__.py
-│   │   ├── game_state.py         # Game state management (bots, bullets, walls)
-│   │   └── physics.py            # Physics engine (movement, collision, combat)
+│   ├── engine/                 # Core game logic
+│   │   ├── game_state.py       # Game state management
+│   │   └── physics.py          # Physics engine
 │   │
-│   ├── networking/                # Network communication
-│   │   ├── __init__.py
-│   │   ├── server.py             # gRPC server implementation
-│   │   └── matchmaking.py        # Server-side matchmaking system
+│   ├── networking/             # Network communication
+│   │   ├── server.py           # gRPC server implementation
+│   │   └── room_manager.py     # Room-based matchmaking
 │   │
-│   └── ui/                        # Visualization
-│       ├── __init__.py
-│       └── renderer.py           # Pygame real-time rendering
+│   ├── logging/                # JSON logging system
+│   │   └── json_logger.py      # Server-side data logging
+│   │
+│   └── ui/                     # Visualization
+│       └── renderer.py         # Real-time pygame rendering
 │
-├── ai_bot/                         # AI client (simplified)
-│   ├── __init__.py
-│   ├── main.py                    # Bot entry point (simplified)
+├── ai_bot/                     # AI client implementation
+│   ├── main.py                 # Bot entry point
 │   │
-│   ├── models/                    # Neural networks
-│   │   ├── __init__.py
-│   │   └── network.py            # PPO network with movement bias
+│   ├── models/                 # Neural networks
+│   │   ├── base_model.py       # Abstract AI model interface
+│   │   ├── network.py          # PPO network architecture
+│   │   └── ppo_model.py        # Modular PPO implementation
 │   │
-│   ├── training/                  # Learning algorithms
-│   │   ├── __init__.py
-│   │   ├── ppo.py                # PPO trainer
-│   │   └── buffer.py             # Experience buffer
+│   ├── training/               # Learning algorithms
+│   │   ├── ppo.py              # PPO trainer with tactical rewards
+│   │   └── buffer.py           # Experience replay buffer
 │   │
-│   └── client/                    # Connection logic
-│       ├── __init__.py
-│       └── bot_client.py         # gRPC client with forced movement
+│   └── client/                 # Connection logic
+│       └── bot_client.py       # Enhanced gRPC client
 │
-└── models/                         # Model storage
-    ├── .gitkeep                   # Keep directory
-    ├── checkpoints/               # Training checkpoints
-    └── backups/                   # Model backups
-
-# =====================================
-# 🎯 GAME MECHANICS
-# =====================================
-
-GAME_MECHANICS
-🏟️ ARENA:
-• 2D top-down view (800x600 pixels)
-• Fixed walls and obstacles for strategic cover
-• Continuous physics simulation at 60 FPS
-• Variable speed training (1x, 2x, 4x, 10x multipliers)
-
-🤖 BOT MECHANICS:
-• Circular bots with 15-pixel radius
-• Health: 100 HP, 25 damage per bullet hit (4 hits = death)
-• Movement: Continuous thrust vector (-1 to 1) with max speed 200 px/s
-• Shooting: 0.3s cooldown, infinite bullet range until collision
-• Aim: 360-degree continuous aiming with visual indicator
-
-💥 COMBAT SYSTEM:
-• Bullets: 400 px/s speed, destroyed on impact with bot/wall/boundary
-• Collision: Real-time detection with elastic bot-bot collision
-• Death cycle: Death → Learn → 1s delay → Respawn at death location
-• Invulnerability: 1s after respawn to prevent spawn camping
-• No friendly fire in self-play mode
-
-🎮 FORCED MOVEMENT SYSTEM:
-• AI must always move - no standing still allowed
-• Movement magnitude < 0.3 triggers exploration noise injection
-• Stillness penalty (-0.05) vs movement bonus (+0.01) in rewards
-• Network architecture biased toward action with higher std deviation
-• Random exploration added to small movements automatically
-
-# =====================================
-# 🧠 AI SYSTEM
-# =====================================
-
-AI_SYSTEM
-🔬 PPO ALGORITHM:
-• Actor-Critic architecture with shared feature extractor
-• Observation space: 32-dimensional normalized vectors
-  - Self state: position, HP, aim direction
-  - Enemy state: position, HP, distance, angle
-  - Environment: bullets, walls, line-of-sight, arena bounds
-• Action space:
-  - Movement: Continuous 2D thrust vector (-1 to 1)
-  - Aim: Continuous angle (0 to 2π radians)
-  - Fire: Discrete boolean action
-
-💪 MOVEMENT ENFORCEMENT:
-• Network initialization with movement bias (0.1 base thrust)
-• Higher exploration std (0.7) for movement vs aim (0.5)
-• Runtime movement boost: if magnitude < 0.3, add random noise
-• Reward shaping: penalize stillness, reward significant movement
-• Observation features include movement urgency signals
-
-🏆 REWARD SYSTEM (Simplified):
-• Kill enemy: +100 points
-• Death: -100 points
-• Movement bonus: +0.01 for distance > 2 pixels
-• Stillness penalty: -0.05 for distance < 0.5 pixels
-• No survival time or distance-to-enemy rewards (clean design)
-
-🎓 REAL-TIME LEARNING:
-• Continuous experience collection during gameplay
-• Death triggers immediate PPO update with stored experiences
-• GAE (Generalized Advantage Estimation) for value function
-• Experience replay buffer with real-time mini-batch updates
-• Model improvements applied instantly on next respawn
-
-# =====================================
-# 🌐 NETWORKING ARCHITECTURE
-# =====================================
-
-NETWORKING_DESIGN
-🔌 gRPC BIDIRECTIONAL STREAMING:
-• Client → Server: Action stream (thrust, aim, fire) at 60 FPS
-• Server → Client: Observation stream (game state) at 60 FPS
-• Protocol Buffers for type-safe, efficient serialization
-• Async/await pattern for non-blocking I/O
-
-📡 MATCHMAKING SYSTEM (Server-Managed):
-• Player Registration: Simple connect with player_id + optional model
-• Auto-Assignment: Server automatically assigns players to matches
-• Match Types:
-  - Self-Play: 1 player + 2 AI clones, shared learning
-  - PvP: 2+ players, independent learning
-  - Practice: Solo training with AI opponents
-
-🎛️ MATCH LIFECYCLE:
-1. Player connects with bot_client.connect_and_play()
-2. Server auto-assigns to best available match
-3. Server creates appropriate number of bots (1 for PvP, 3 for self-play)
-4. Real-time game begins with bidirectional streaming
-5. Death/kill events trigger learning updates
-6. Continuous gameplay until disconnect
-
-🔄 CONNECTION FLOW:
-Player → RegisterBot() → Server assigns match → PlayGame() stream starts
+├── models/                     # Model storage
+│   ├── checkpoints/            # Auto-saved training checkpoints
+│   └── backups/               # Manual model backups
 │
-├── Self-Play Match: Creates 3 bots (1 original + 2 clones)
-└── PvP Match: Creates 1 bot, waits for opponent
+└── logs/                      # Server logging
+    └── server_grpc_data/      # JSON logs of all gRPC data
+```
 
-# =====================================
-# 🎨 USER INTERFACE
-# =====================================
+## Environment Setup
 
-UI_SYSTEM
-🖥️ GAME SERVER UI (Pygame):
-• Real-time arena visualization (800x600 game area)
-• Left panel: Statistics, controls, bot list
-• Speed control buttons: 1x, 2x, 4x, 10x training speeds
-• Live metrics: FPS, tick count, bot stats, bullet count
-• Bot selection: Click to follow specific bot
-• Debug mode: Toggle collision visualization, line-of-sight
+### Prerequisites
+- Python 3.8+
+- Virtual environment support (venv/conda)
+- Git
 
-📊 STATISTICS DASHBOARD:
-• Game performance: FPS, uptime, speed multiplier
-• Combat stats: Total kills, deaths, bullets fired
-• Bot information: HP, state, kills/deaths ratio
-• Match information: Active players, match modes
-• Training progress: Model updates, learning events
+### 1. Create Virtual Environment
 
-🎮 CONTROLS:
-• Keyboard shortcuts: 1-4 (speed), D (debug), ESC (quit)
-• Mouse interaction: Click bots to select/follow
-• Real-time speed adjustment without restart
-• Live statistics monitoring
+**Using venv:**
+```bash
+# Create virtual environment
+python -m venv arena_battle
 
-👤 AI BOT CLIENT (Simplified):
-• Command-line interface only
-• Minimal arguments: --player-id, --model-path
-• Auto-connect to server, server handles matchmaking
-• Training progress logged to console
-• Model auto-save on significant learning events
+# Activate (Windows)
+arena_battle\Scripts\activate
 
-# =====================================
-# 🚀 EXECUTION WORKFLOW
-# =====================================
+# Activate (Linux/Mac)
+source arena_battle/bin/activate
+```
 
-EXECUTION_FLOW
-🔧 SETUP:
-1. Install dependencies: pip install -r requirements.txt
-2. Generate protobuf: python proto/generate.py
-3. Verify project structure and file locations
+**Using conda:**
+```bash
+# Create conda environment
+conda create -n arena_battle python=3.9
 
-▶️ STARTUP SEQUENCE:
-1. Start Game Server:
-   python -m game_server.main
-   • Initializes physics engine (60 FPS)
-   • Starts matchmaking system
-   • Launches Pygame UI
-   • Begins gRPC server (port 50051)
+# Activate environment
+conda activate arena_battle
+```
 
-2. Connect AI Bots:
-   python -m ai_bot.main --player-id player001
-   python -m ai_bot.main --player-id player002 --model-path ./models/trained_model.pth
-   • Auto-registration with server
-   • Server-managed match assignment
-   • Real-time learning begins immediately
+### 2. Clone Repository
+```bash
+git clone <repository-url>
+cd arena_battle_game
+```
 
-🎯 RUNTIME BEHAVIOR:
-• Server automatically creates matches based on connected players
-• Self-play priority: New players assigned to self-play training first
-• PvP matching: Players matched when 2+ available
-• Continuous learning: No episodes, just continuous improvement
-• Real-time visualization: Watch bots learn and adapt
-• Speed scaling: Accelerate training without restart
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-🔄 DEVELOPMENT CYCLE:
-• Train models with accelerated speed (4x-10x)
-• Save/load models for experimentation
-• Test different algorithms by swapping network implementations
-• Compare performance across different training approaches
-• Export trained models for competition/sharing
+### 4. Generate Protocol Buffers
+```bash
+python proto/generate.py
+```
 
-# =====================================
-# 🎯 KEY INNOVATIONS
-# =====================================
+## Room Configuration
 
-KEY_FEATURES
-🔥 ARCHITECTURAL INNOVATIONS:
-• Server-Managed Matchmaking: Eliminates client-side mode selection complexity
-• Simplified AI Client: Focus purely on model and learning, not infrastructure
-• Centralized Game Logic: Fair, consistent physics for all participants
-• Real-time Learning Integration: No separate training phases
+Edit `rooms.json` to configure battle arenas:
 
-💡 AI TRAINING INNOVATIONS:
-• Forced Movement System: Prevents degenerate "standing still" strategies
-• Multi-perspective Self-play: Learn from clones simultaneously
-• Event-driven Learning: Death/kill events trigger immediate model updates
-• Movement-biased Architecture: Network designed to encourage exploration
+```json
+{
+    "room_001": {
+        "password": "abc123",
+        "max_players": 4,
+        "arena": {
+            "width": 800,
+            "height": 600,
+            "obstacles": [
+                {"x": 200, "y": 200, "width": 50, "height": 100},
+                {"x": 550, "y": 300, "width": 100, "height": 50}
+            ]
+        }
+    }
+}
+```
 
-⚡ PERFORMANCE INNOVATIONS:
-• Variable Speed Training: 1x-10x multipliers for rapid experimentation
-• Headless Mode Support: Maximum training speed without rendering
-• Real-time Model Updates: No training/inference separation
-• Efficient Protocol Buffers: Minimal network overhead
+## Running the System
 
-🎮 USER EXPERIENCE INNOVATIONS:
-• Zero Configuration: Players just connect, server handles everything
-• Live Visualization: Watch AI learning in real-time
-• Instant Speed Scaling: Change training speed without restart
-• Plug-and-play Models: Load any trained model and start playing
+### Step 1: Start Game Server
+```bash
+python -m game_server.main
+```
 
-# =====================================
-# 🔧 CUSTOMIZATION POINTS
-# =====================================
+**Server Features:**
+- Real-time physics simulation at 60 FPS
+- Live pygame visualization with room switching (R key)
+- Speed control: 1x, 2x, 4x, 10x training speeds
+- JSON logging of all gRPC communications
+- Multi-room support with custom arena layouts
 
-CUSTOMIZATION_GUIDE
-🧠 ADD NEW AI ALGORITHMS:
-1. Implement trainer interface in ai_bot/training/
-2. Replace PPOTrainer in ai_bot/main.py
-3. Maintain same action space for compatibility
+### Step 2: Connect AI Bots
 
-🎮 MODIFY GAME MECHANICS:
-• Arena: Edit game_server/engine/game_state.py
-• Physics: Edit game_server/engine/physics.py
-• Combat: Adjust damage, cooldowns, speed constants
-• Rewards: Modify _calculate_reward() in bot_client.py
+**Basic Connection:**
+```bash
+python -m ai_bot.main --player-id player001 --room-id room_001 --room-password abc123
+```
 
-🎯 ENHANCE MATCHMAKING:
-• Add skill-based matching in matchmaking.py
-• Implement tournament brackets
-• Create ranked competitive modes
-• Add spectator functionality
+**With Model Loading:**
+```bash
+python -m ai_bot.main --player-id player002 --room-id room_001 --room-password abc123 --auto-load
+```
 
-🎨 EXTEND VISUALIZATION:
-• Custom rendering in renderer.py
-• Add new UI panels and controls
-• Implement replay system
-• Create web-based spectator interface
+**Training Parameters:**
+```bash
+python -m ai_bot.main \
+  --player-id advanced_bot \
+  --room-id room_002 \
+  --room-password abc456 \
+  --model-path ./models/checkpoints/trained_model.pth \
+  --save-interval 180
+```
+
+### Step 3: Monitor Training
+
+**List Available Models:**
+```bash
+python -m ai_bot.main --player-id player001 --list-models
+```
+
+**Server Controls:**
+- `1,2,3,4` - Adjust training speed (1x to 10x)
+- `R` - Cycle through room views
+- `D` - Toggle debug visualization
+- `Click` - Select bot to follow
+- `ESC` - Shutdown server
+
+## Game Mechanics
+
+### Combat System
+- **Health:** 100 HP, 25 damage per hit (4 hits to eliminate)
+- **Movement:** Continuous thrust control with 200 px/s max speed
+- **Shooting:** 0.3s cooldown, 400 px/s bullet speed
+- **Respawn:** 1s delay at random position with 1s invulnerability
+
+### AI Learning Features
+- **Wall Avoidance:** Dynamic collision detection with danger zones
+- **Smart Aiming:** Predictive targeting with line-of-sight awareness  
+- **Tactical Movement:** Anti-camping with strategic positioning
+- **Firing Efficiency:** Conservative ammunition management
+- **Real-time Learning:** Model updates after each death/kill event
+
+### Room System
+- **Minimum Players:** 2 players required to start combat
+- **Waiting State:** Solo players receive stable waiting observations
+- **Room Capacity:** Configurable max players per room
+- **Password Protection:** Secure room access control
+
+## AI Architecture
+
+### PPO Network Design
+- **Observation Space:** 48-dimensional normalized feature vectors
+- **Action Space:** 
+  - Movement: Continuous 2D thrust (-1 to 1)
+  - Aiming: Continuous angle (0 to 2π radians) 
+  - Firing: Discrete boolean decision
+- **Network Layers:** 3-layer fully connected (128 hidden units)
+- **Training:** Actor-critic with GAE advantage estimation
+
+### Enhanced Reward System
+```python
+rewards = {
+    'kill_enemy': +100,
+    'death': -100, 
+    'movement': +0.01,
+    'stillness': -0.05,
+    'wall_collision': -0.1,
+    'smart_firing': +0.005,
+    'wasted_ammo': -0.01
+}
+```
+
+### Auto-Save System
+- **Time-based:** Every 5 minutes by default
+- **Performance-based:** On K/D ratio improvements
+- **Event-triggered:** Every 10 deaths for progress tracking
+- **Model Management:** Automatic cleanup of old checkpoints
+
+## Advanced Usage
+
+### Custom AI Models
+Extend the `BaseAIModel` class to implement custom algorithms:
+
+```python
+from ai_bot.models.base_model import BaseAIModel
+
+class CustomAI(BaseAIModel):
+    def _initialize_model(self, **kwargs):
+        # Custom model setup
+        
+    def get_action(self, observation, deterministic=False):
+        # Custom action selection
+        
+    def learn_from_experience(self, experience_data):
+        # Custom learning algorithm
+```
+
+### Training Strategies
+- **Self-Play:** Single player with multiple bot instances
+- **Tournament:** Multiple players competing simultaneously  
+- **Curriculum Learning:** Progressive arena complexity
+- **Transfer Learning:** Load pre-trained models as starting points
+
+### Performance Optimization
+- **Headless Mode:** `python -m game_server.main --no-ui`
+- **Speed Scaling:** Use 4x-10x speed for rapid training iterations
+- **Batch Training:** Run multiple bot instances simultaneously
+- **Model Checkpointing:** Regular saves prevent training loss
+
+## Logging and Analytics
+
+### JSON Logs
+All gRPC communications are logged to `logs/server_grpc_data/`:
+- Bot registrations and disconnections
+- All observations sent to bots  
+- All actions received from bots
+- Game events (kills, deaths, respawns)
+- Match events and room assignments
+- Performance metrics and errors
+
+### Model Statistics
+Each saved model includes comprehensive metrics:
+- Kill/Death ratios and accuracy percentages
+- Training episodes and total rewards
+- Wall collision counts and movement patterns
+- Firing efficiency and tactical performance
+
+## Troubleshooting
+
+### Common Issues
+
+**Proto Import Error:**
+```bash
+python proto/generate.py
+```
+
+**Connection Refused:**
+- Ensure server is running on correct port (50051)
+- Check firewall settings for localhost connections
+
+**Model Loading Failed:**
+- Verify model file path exists
+- Check model compatibility with current network architecture
+
+**Room Access Denied:**
+- Confirm room ID and password in rooms.json
+- Ensure room isn't at maximum capacity
+
+### Debug Mode
+Enable detailed logging with debug flags:
+```bash
+python -m game_server.main --log-level DEBUG
+```
+
+### Performance Issues
+- Reduce training speed multiplier (1x-2x)
+- Enable headless mode for CPU optimization
+- Check system resources during intensive training
+
+## Contributing
+
+The codebase follows a modular architecture supporting:
+- Custom AI algorithm implementations
+- New arena layouts and game mechanics
+- Enhanced visualization and UI features
+- Advanced logging and analytics systems
+
+## License
+
+This project is developed for educational and research purposes in reinforcement learning and multi-agent systems.
