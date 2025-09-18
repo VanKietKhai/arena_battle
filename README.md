@@ -28,7 +28,6 @@ arena_battle_game/
 │   ├── arena.proto             # gRPC service definitions
 │   ├── arena_pb2.py            # Generated Python classes
 │   ├── arena_pb2_grpc.py       # Generated gRPC stubs
-│   └── generate.py             # Proto generation script
 │
 ├── game_server/                 # Centralized game engine
 │   ├── main.py                 # Server entry point
