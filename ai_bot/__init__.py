@@ -1,3 +1,3 @@
 # AI models package
 # Expose HMoeModel
-from .hmoe_models import HMoeModel
+from .hmoe_model import HMoeModel
